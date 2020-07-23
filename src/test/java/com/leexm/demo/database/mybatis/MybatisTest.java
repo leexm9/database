@@ -16,31 +16,59 @@ import java.io.Reader;
  */
 public class MybatisTest {
 
+    private String resource = "mybatis/mybatis-self-config.xml";
+
     @Test
     public void testGetById() {
         User user = null;
         try (SqlSession sqlSession = MybatisUtil.getSqlSessionFactory().openSession()) {
-            UserDao userMapper = sqlSession.getMapper(UserDao.class);
-            user = userMapper.getById(1);
+            UserDao userDao = sqlSession.getMapper(UserDao.class);
+            user = userDao.getById(1);
+
+            // 命中一级缓存
+            UserDao userDao1 = sqlSession.getMapper(UserDao.class);
+            System.out.println(userDao1.getById(1));
+            // commit 的时候会将一级缓存 缓存到 二级缓存
             sqlSession.commit();
         }
         System.out.println(user);
+        // 命中二级缓存
+        try (SqlSession sqlSession = MybatisUtil.getSqlSessionFactory().openSession()) {
+            user = sqlSession.selectOne("com.leexm.demo.database.mybatis.UserDao.getById", 1);
+            System.out.println(user.getName());
+        }
         Assert.assertNotNull(user);
     }
 
     @Test
-    public void test() throws IOException {
-        String resource = "mybatis/mybatis-self-config.xml";
+    public void test2() throws IOException {
         Reader reader = Resources.getResourceAsReader(resource);
-        SqlSessionManager sessionManager = SqlSessionManager.newInstance(reader);
-        sessionManager.startManagedSession();
-        UserDao userDao = sessionManager.getMapper(UserDao.class);
-        User user = userDao.getById(2);
-        System.out.println(user);
+        SqlSessionManager sqlSessionManager = SqlSessionManager.newInstance(reader);
+        User user = null;
+        try (SqlSession sqlSession = sqlSessionManager.openSession()) {
+            UserDao userDao = sqlSession.getMapper(UserDao.class);
+            user = userDao.getById(1);
+            System.out.println(user);
+        }
 
-        UserDao userDao1 = sessionManager.getMapper(UserDao.class);
-        User user1 = userDao1.getById(1);
-        System.out.println(user1);
+        // 命中二级缓存
+        UserDao userDao1 = sqlSessionManager.getMapper(UserDao.class);
+        System.out.println(userDao1.getById(1));
+        Assert.assertNotNull(user);
+    }
+
+    @Test
+    public void test3() throws IOException {
+        Reader reader = Resources.getResourceAsReader(resource);
+        SqlSessionManager sqlSessionManager = SqlSessionManager.newInstance(reader);
+        sqlSessionManager.startManagedSession();
+        UserDao userDao = sqlSessionManager.getMapper(UserDao.class);
+        User user = userDao.getById(2);
+
+        // 命中一级缓存
+        UserDao userDao2 = sqlSessionManager.getMapper(UserDao.class);
+        User user2 = userDao2.getById(2);
+        System.out.println(user2);
     }
 
 }

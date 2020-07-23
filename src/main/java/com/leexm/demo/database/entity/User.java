@@ -1,10 +1,14 @@
 package com.leexm.demo.database.entity;
 
+import java.io.Serializable;
+
 /**
  * @author leexm
  * @date 2020/6/30 9:45
  */
-public class User {
+public class User implements Serializable {
+
+    private static final long serialVersionUID = 8975429246732363929L;
 
     private Integer id;
 
